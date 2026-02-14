@@ -1,3 +1,5 @@
+Run `bun asm` to assemble src/assembler.js into out.sheet.
+
 Parameters starting with & means they are memory addresses rather than the concret value.
 The prefix * implies reading the value at the memory address (dereferencing).
 Memory addresses are in the form of row[col] since memory is 2D.

@@ -1,4 +1,4 @@
-const code = await Bun.file('./fib.asm').text()
+const code = await Bun.file('./src/fib.asm').text()
 
 const out = [
     ['<_start>']
@@ -52,4 +52,5 @@ for (const { label, y, x } of labelReferences) {
     out[y][x] = labels.get(label)
 }
 
-Bun.file('./out.sheet').write(out.map(line => line.join('\t')).join('\n'))
+await Bun.file('./out.sheet').write(out.map(line => line.join('\t')).join('\n'))
+console.log(':)')

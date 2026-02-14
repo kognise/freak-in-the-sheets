@@ -1,6 +1,9 @@
 {
   "name": "liveshare",
   "private": true,
+  "scripts": {
+    "asm": "bun src/assembler.js"
+  },
   "devDependencies": {
     "@types/bun": "latest"
   },
