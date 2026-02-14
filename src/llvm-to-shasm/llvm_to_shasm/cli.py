@@ -29,6 +29,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--bun-bin", default="bun", help="bun executable name/path")
     parser.add_argument("--clang-bin", default="clang", help="clang executable name/path")
     parser.add_argument(
+        "--opt-level",
+        default="O0",
+        help="LLVM optimization level passed to clang (O0/O1/O2/O3/Os/Oz)",
+    )
+    parser.add_argument(
         "--emit-ll",
         default=True,
         action=argparse.BooleanOptionalAction,
@@ -54,6 +59,7 @@ def main() -> None:
         emit_ll=args.emit_ll,
         emit_asm=args.emit_asm,
         clang_bin=args.clang_bin,
+        opt_level=args.opt_level,
     )
 
     if ll_path is not None:

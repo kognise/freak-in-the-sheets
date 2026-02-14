@@ -26,3 +26,18 @@ def test_fib_pipeline_emits_default_sibling_ll_and_asm(tmp_path: Path) -> None:
     assert "store" in asm
     assert "jmp" in asm
     assert "halt" in asm
+
+
+@pytest.mark.skipif(which("clang") is None, reason="clang is required")
+def test_fib_pipeline_supports_optimized_llvm_emission(tmp_path: Path) -> None:
+    fixture_src = Path(__file__).parent / "fixtures" / "fib.c"
+    fixture = tmp_path / "fib.c"
+    fixture.write_text(fixture_src.read_text())
+
+    emitted_ll, emitted_asm = run_pipeline(c_path=fixture, emit_asm=False, opt_level="O1")
+
+    ll_path = tmp_path / "fib.ll"
+    assert emitted_ll == ll_path
+    assert emitted_asm is None
+    assert ll_path.exists()
+    assert "getelementptr" in ll_path.read_text()

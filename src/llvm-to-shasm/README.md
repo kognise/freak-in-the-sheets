@@ -13,6 +13,7 @@ From `src/llvm-to-shasm`:
 `poetry run python -m llvm_to_shasm.cli tests/fixtures/fib.c`
 
 This emits sibling files next to the input C file (for `fib.c`: `fib.ll` and `fib.asm`).
+By default, LLVM IR is emitted with `-O0`; pass `--opt-level O1` (or higher) to run LLVM optimization passes before IR emission.
 
 To also run the assembler and emit a sheet file:
 

@@ -6,20 +6,34 @@ from pathlib import Path
 from .backend import emit_shasm, parse_llvm_ir
 
 
-def compile_c_to_llvm(c_path: Path, ll_path: Path, clang_bin: str = "clang") -> None:
+def _normalize_opt_level(opt_level: str) -> str:
+    level = opt_level.strip().upper()
+    if level.startswith("-"):
+        level = level[1:]
+    if level not in {"O0", "O1", "O2", "O3", "OS", "OZ"}:
+        raise ValueError(f"Unsupported optimization level: {opt_level}")
+    return level
+
+
+def compile_c_to_llvm(
+    c_path: Path,
+    ll_path: Path,
+    clang_bin: str = "clang",
+    opt_level: str = "O0",
+) -> None:
+    normalized_opt_level = _normalize_opt_level(opt_level)
     ll_path.parent.mkdir(parents=True, exist_ok=True)
+    command = [
+        clang_bin,
+        "-S",
+        "-emit-llvm",
+        f"-{normalized_opt_level}",
+    ]
+    if normalized_opt_level == "O0":
+        command.extend(["-Xclang", "-disable-O0-optnone"])
+    command.extend([str(c_path), "-o", str(ll_path)])
     subprocess.run(
-        [
-            clang_bin,
-            "-S",
-            "-emit-llvm",
-            "-O0",
-            "-Xclang",
-            "-disable-O0-optnone",
-            str(c_path),
-            "-o",
-            str(ll_path),
-        ],
+        command,
         check=True,
         capture_output=True,
         text=True,
@@ -57,6 +71,7 @@ def run_pipeline(
     emit_ll: bool = True,
     emit_asm: bool = True,
     clang_bin: str = "clang",
+    opt_level: str = "O0",
 ) -> tuple[Path | None, Path | None]:
     c_path = c_path.resolve()
     if ll_path is None:
@@ -65,7 +80,7 @@ def run_pipeline(
         asm_path = c_path.with_suffix(".asm")
 
     if emit_ll:
-        compile_c_to_llvm(c_path, ll_path, clang_bin=clang_bin)
+        compile_c_to_llvm(c_path, ll_path, clang_bin=clang_bin, opt_level=opt_level)
     if emit_asm:
         if not ll_path.exists():
             raise FileNotFoundError(f"LLVM IR file not found: {ll_path}")
