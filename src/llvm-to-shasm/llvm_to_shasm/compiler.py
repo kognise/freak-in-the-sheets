@@ -42,7 +42,7 @@ def compile_c_to_llvm(
 
 def compile_llvm_to_shasm(ll_path: Path, asm_path: Path) -> str:
     llvm_ir = ll_path.read_text()
-    module = parse_llvm_ir(llvm_ir)
+    module = parse_llvm_ir(llvm_ir, source_name=str(ll_path))
     asm = emit_shasm(module)
     asm_path.parent.mkdir(parents=True, exist_ok=True)
     asm_path.write_text(asm)

@@ -26,12 +26,12 @@ class Address:
 _NAME = r"[%@][A-Za-z$._0-9-]+"
 
 
-def parse_llvm_ir(text: str) -> Module:
+def parse_llvm_ir(text: str, source_name: str = "<llvm-ir>") -> Module:
     blocks: dict[str, list[Instruction]] = {}
     current_block: str | None = None
     in_main = False
 
-    for raw in text.splitlines():
+    for line_number, raw in enumerate(text.splitlines(), start=1):
         line = raw.strip()
         if not line or line.startswith(";"):
             continue
@@ -54,7 +54,11 @@ def parse_llvm_ir(text: str) -> Module:
             current_block = "entry"
             blocks.setdefault(current_block, [])
 
-        parsed = _parse_instruction(line)
+        try:
+            parsed = _parse_instruction(line)
+        except ValueError as err:
+            # Keep errors clickable in terminals/editors that support "path:line" links.
+            raise ValueError(f"{source_name}:{line_number}: {err}") from None
         if parsed is not None:
             blocks[current_block].append(parsed)
 
@@ -74,6 +78,7 @@ def _parse_instruction(line: str) -> Instruction | None:
         return None
     if line.startswith("ret void"):
         return Instruction("ret", tuple())
+        
     raise ValueError(f"Unsupported LLVM instruction: {line}")
 
 
@@ -87,12 +92,12 @@ def _sym(token: str) -> str:
 
 _PATTERNS: list[tuple[str, Callable[[re.Match[str]], Instruction]]] = [
     (
-        rf"^({_NAME})\s*=\s*alloca\s+\[(\d+)\s+x\s+i\d+\].*$",
-        lambda m: Instruction("alloca_array", (_sym(m.group(1)), m.group(2))),
+        rf"^({_NAME})\s*=\s*alloca\s+\[(\d+)\s+x\s+i(\d+)\].*$",
+        lambda m: Instruction("alloca_array", (_sym(m.group(1)), m.group(2), m.group(3))),
     ),
     (
-        rf"^({_NAME})\s*=\s*alloca\s+i\d+.*$",
-        lambda m: Instruction("alloca_scalar", (_sym(m.group(1)),)),
+        rf"^({_NAME})\s*=\s*alloca\s+i(\d+).*$",
+        lambda m: Instruction("alloca_scalar", (_sym(m.group(1)), m.group(2))),
     ),
     (
         rf"^store\s+i\d+\s+([^,]+),\s+ptr\s+([^,]+).*$",
@@ -113,6 +118,10 @@ _PATTERNS: list[tuple[str, Callable[[re.Match[str]], Instruction]]] = [
         lambda m: Instruction(
             "icmp", (_sym(m.group(1)), m.group(2), _sym(m.group(3)), _sym(m.group(4)))
         ),
+    ),
+    (
+        rf"^({_NAME})\s*=\s*getelementptr\b.*\bi8,\s+ptr\s+([^,]+),\s+i\d+\s+(.+)$",
+        lambda m: Instruction("gep_byte", (_sym(m.group(1)), _sym(m.group(2)), _sym(m.group(3)))),
     ),
     (
         rf"^({_NAME})\s*=\s*getelementptr\b.*,\s+ptr\s+({_NAME}),\s+i\d+\s+([^,]+),\s+i\d+\s+(.+)$",
@@ -147,6 +156,7 @@ class _Emitter:
         self.module = module
         self.const_symbols: dict[int, str] = {}
         self.pointer_slots: dict[str, Address] = {}
+        self.pointer_elem_bytes: dict[str, int] = {}
         self.value_slots: dict[str, str] = {}
         self.declarations: list[str] = []
         self.declared_rows: set[str] = set()
@@ -184,18 +194,20 @@ class _Emitter:
 
     def _scan_instruction(self, inst: Instruction) -> None:
         if inst.op == "alloca_scalar":
-            ptr = inst.args[0]
+            ptr, bits_text = inst.args
             row = self._slot_name(ptr)
             self._declare_row(row, ["0"])
             self.pointer_slots[ptr] = Address(row=row, col=self._const(0))
+            self.pointer_elem_bytes[ptr] = self._bits_to_bytes(bits_text)
             return
 
         if inst.op == "alloca_array":
-            ptr, size_text = inst.args
+            ptr, size_text, bits_text = inst.args
             size = int(size_text)
             row = self._slot_name(ptr)
             self._declare_row(row, ["0"] * size)
             self.pointer_slots[ptr] = Address(row=row, col=self._const(0))
+            self.pointer_elem_bytes[ptr] = self._bits_to_bytes(bits_text)
             return
 
         if inst.op in {"load", "binop", "icmp", "cast"}:
@@ -208,6 +220,17 @@ class _Emitter:
             result, base, index = inst.args
             base_addr = self._pointer(base)
             self.pointer_slots[result] = Address(row=base_addr.row, col=self._value(index))
+            self.pointer_elem_bytes[result] = self.pointer_elem_bytes.get(base, 1)
+            return
+
+        if inst.op == "gep_byte":
+            result, base, byte_offset = inst.args
+            base_addr = self._pointer(base)
+            self.pointer_slots[result] = Address(
+                row=base_addr.row,
+                col=self._byte_offset_to_index(base, byte_offset),
+            )
+            self.pointer_elem_bytes[result] = self.pointer_elem_bytes.get(base, 1)
             return
 
         if inst.op == "store":
@@ -232,7 +255,7 @@ class _Emitter:
             self._value(inst.args[0])
 
     def _emit_instruction(self, inst: Instruction) -> list[str]:
-        if inst.op in {"alloca_scalar", "alloca_array", "gep"}:
+        if inst.op in {"alloca_scalar", "alloca_array", "gep", "gep_byte"}:
             return []
 
         if inst.op == "load":
@@ -339,3 +362,21 @@ class _Emitter:
         if re.match(r"^\d", safe):
             safe = f"bb_{safe}"
         return safe
+
+    def _bits_to_bytes(self, bits_text: str) -> int:
+        bits = int(bits_text)
+        return max(1, bits // 8)
+
+    def _byte_offset_to_index(self, base_ptr: str, byte_offset_token: str) -> str:
+        token = byte_offset_token.strip()
+        stride = self.pointer_elem_bytes.get(base_ptr, 1)
+        if re.fullmatch(r"-?\d+", token):
+            byte_offset = int(token)
+            if byte_offset % stride != 0:
+                raise ValueError(
+                    f"Unsupported unaligned byte GEP offset: {byte_offset} for stride {stride}"
+                )
+            return self._const(byte_offset // stride)
+        if stride == 1:
+            return self._value(token)
+        raise ValueError(f"Unsupported dynamic byte GEP offset for stride {stride}: {token}")
