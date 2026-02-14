@@ -10,7 +10,13 @@ Small Python CLI that:
 
 From `src/llvm-to-shasm`:
 
-`poetry run llvm-to-shasm tests/fixtures/fib.c --ll-out tests/generated/fib.ll --asm-out tests/generated/fib.asm`
+`poetry run python -m llvm_to_shasm.cli tests/fixtures/fib.c`
+
+This emits sibling files next to the input C file (for `fib.c`: `fib.ll` and `fib.asm`).
+
+To also run the assembler and emit a sheet file:
+
+`poetry run python -m llvm_to_shasm.cli tests/fixtures/fib.c --sheet-out tests/generated/out.sheet --bun-bin ${BUN_BIN:-bun}`
 
 From repo root, full chain to `out.sheet`:
 

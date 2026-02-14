@@ -35,6 +35,21 @@ def compile_llvm_to_shasm(ll_path: Path, asm_path: Path) -> str:
     return asm
 
 
+def assemble_shasm_to_sheet(
+    asm_path: Path,
+    sheet_path: Path,
+    assembler_path: Path,
+    bun_bin: str = "bun",
+) -> None:
+    sheet_path.parent.mkdir(parents=True, exist_ok=True)
+    subprocess.run(
+        [bun_bin, str(assembler_path), str(asm_path), str(sheet_path)],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
 def run_pipeline(
     c_path: Path,
     ll_path: Path | None = None,

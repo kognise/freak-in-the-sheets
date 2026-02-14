@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "asm": "bun src/assembler.js",
-    "fib:c2sheet": "poetry -C src/llvm-to-shasm run llvm-to-shasm src/llvm-to-shasm/tests/fixtures/fib.c --ll-out src/llvm-to-shasm/tests/generated/fib.ll --asm-out src/llvm-to-shasm/tests/generated/fib.asm && ${BUN_BIN:-bun} src/assembler.js src/llvm-to-shasm/tests/generated/fib.asm out.sheet"
+    "fib:c2sheet": "poetry -C src/llvm-to-shasm run python -m llvm_to_shasm.cli src/llvm-to-shasm/tests/fixtures/fib.c --sheet-out out.sheet --bun-bin ${BUN_BIN:-bun}"
   },
   "devDependencies": {
     "@types/bun": "latest"
