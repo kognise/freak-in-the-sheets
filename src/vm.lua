@@ -69,10 +69,14 @@
             op_lte,     0,
             op_add,     1,
             op_load,    2,
-            op_store,   3,
-            op_jmp0,    4,
-            op_jmp,     5,
-            op_halt,    6,
+            op_load_a,  3,
+            op_store,   4,
+            op_store_a, 5,
+            op_jmp0,    6,
+            op_jmp0_a,  7,
+            op_jmp,     8,
+            op_jmp_a,   9,
+            op_halt,    10,
             
             IF(operation = op_lte,
                 LET(
@@ -95,10 +99,25 @@
                     out, arg(1),
                     row, arg(2),
                     col, arg(3),
+                    new_value, deref_col(row, deref(col)),
+                    rewrite(pcm, out, new_value)
+                ),
+            IF(operation = op_load_a,
+                LET(
+                    out, arg(1),
+                    row, arg(2),
+                    col, arg(3),
                     new_value, deref_col(deref(row), deref(col)),
                     rewrite(pcm, out, new_value)
                 ),
             IF(operation = op_store,
+                LET(
+                    row, arg(1),
+                    col, arg(2),
+                    in, arg(3),
+                    rewrite_col(pcm, row, deref(col), deref(in))
+                ),
+            IF(operation = op_store_a,
                 LET(
                     row, arg(1),
                     col, arg(2),
@@ -109,16 +128,27 @@
                 LET(
                     data, arg(1),
                     dest, arg(2),
+                    IF(deref(data) = 0, rewrite(matrix, -1, dest), pcm)
+                ),
+            IF(operation = op_jmp0_a,
+                LET(
+                    data, arg(1),
+                    dest, arg(2),
                     IF(deref(data) = 0, rewrite(matrix, -1, deref(dest)), pcm)
                 ),
             IF(operation = op_jmp,
+                LET(
+                    dest, arg(1),
+                    rewrite(matrix, -1, dest)
+                ),
+            IF(operation = op_jmp_a,
                 LET(
                     dest, arg(1),
                     rewrite(matrix, -1, deref(dest))
                 ),
             IF(operation = op_halt, matrix,
             "ERROR: unknown instruction [" & operation & "]"
-            )))))))
+            )))))))))))
         )
     )
 ))

@@ -1,13 +1,17 @@
 const code = await Bun.file('./src/fib.asm').text()
 
 const ops = {
-    lte:    0,
-    add:    1,
-    load:   2,
-    store:  3,
-    jmp0:   4,
-    jmp:    5,
-    halt:   6,
+    lte:     0,
+    add:     1,
+    load:    2,
+    load_a:  3,
+    store:   4,
+    store_a: 5,
+    jmp0:    6,
+    jmp0_a:  7,
+    jmp:     8,
+    jmp_a:   9,
+    halt:    10,
 }
 
 const out = [
