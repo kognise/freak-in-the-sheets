@@ -1,4 +1,4 @@
-n = 17
+n = 50
 result = 0
 terms = 0 1
 terms_len = 2
@@ -15,7 +15,7 @@ terms_addr = terms
 out = 0
 _start:
 loop:
-    <= i_lte_n i n
+    lte i_lte_n i n
     jmp0 i_lte_n after_loop_addr
     add prev1 i neg1
     add prev2 i neg2

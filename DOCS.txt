@@ -6,7 +6,7 @@ Memory addresses are in the form of row[col] since memory is 2D.
 
 Unless otherwise specified, the program counter (PC) increments after every instruction.
 
-<= &out &a &b
+lte &out &a &b
     If *a <= *b, stores 1 at out[0], otherwise stores 0.
 
 add &out &a &b

@@ -1,7 +1,17 @@
 const code = await Bun.file('./src/fib.asm').text()
 
+const ops = {
+    lte:    0,
+    add:    1,
+    load:   2,
+    store:  3,
+    jmp0:   4,
+    jmp:    5,
+    halt:   6,
+}
+
 const out = [
-    ['<_start>']
+    [0]
 ]
 const labelReferences = [
     { label: '_start', x: 0, y: 0 }
@@ -13,7 +23,7 @@ function concretify(token, x, y) {
     if (Number.isNaN(parsed)) {
         // Label reference
         labelReferences.push({ label: token, y: out.length, x })
-        return `<${token}>`
+        return 0
     } else {
         // Value
         return parsed
@@ -43,7 +53,9 @@ for (const line of code.split('\n')) {
         labels.set(label, out.length - 1)
     } else {
         // Instruction
-        out.push([tokens[0], ...tokens.slice(1).map((token, i) => concretify(token, i + 1, out.length))])
+        const opcode = ops[tokens[0]]
+        if (opcode === undefined) throw new Error(`Unknown op '${tokens[0]}'`)
+        out.push([opcode, ...tokens.slice(1).map((token, i) => concretify(token, i + 1, out.length))])
     }
 }
 
@@ -52,5 +64,26 @@ for (const { label, y, x } of labelReferences) {
     out[y][x] = labels.get(label)
 }
 
-await Bun.file('./out.sheet').write(out.map(line => line.join('\t')).join('\n'))
+const sheet = out.map(line => {
+    let cells = [];
+    
+    for (let i = 0; i < line.length; i += 16666) {
+        const chunk = line.slice(i, i + 16666);
+        
+        const encodedCell = chunk.map(val => {
+            const unsigned = val >>> 0
+
+            const a = (unsigned >>> 17) & 0x7fff
+            const b = (unsigned >>> 2) & 0x7fff
+            const c = unsigned & 0x3
+
+            return String.fromCharCode(a + 32) + String.fromCharCode(b + 32) + String.fromCharCode(c + 32)
+        }).join('')
+
+        cells.push(`[${encodedCell}]`)
+    }
+
+    return cells.join('\t')
+}).join('\n')
+await Bun.file('./out.sheet').write(sheet)
 console.log(':)')
