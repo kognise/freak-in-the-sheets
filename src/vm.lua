@@ -5,7 +5,7 @@
         REGEXMATCH(TO_TEXT(D1), "^ERROR: "),
         D1,
         LET(
-            matrix, D1:F35,
+            matrix, C1:E35,
 
             rewrite_col, LAMBDA(matrix, row, col, new_value, LET(
                 real_col, FLOOR(col / 16666),

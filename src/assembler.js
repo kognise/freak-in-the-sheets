@@ -69,7 +69,7 @@ for (const { label, y, x } of labelReferences) {
 }
 
 const sheet = out.map(line => {
-    let cells = [];
+    const cells = []
     
     for (let i = 0; i < line.length; i += 16666) {
         const chunk = line.slice(i, i + 16666);
@@ -87,7 +87,7 @@ const sheet = out.map(line => {
         cells.push(`[${encodedCell}]`)
     }
 
-    return cells.join('\t')
-}).join('\n')
-await Bun.file('./out.sheet').write(sheet)
+    return cells
+})
+await Bun.file('./out.sheet').write(sheet.map(row => row.join('\t')).join('\n'))
 console.log(':)')
