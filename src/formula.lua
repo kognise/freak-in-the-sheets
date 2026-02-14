@@ -5,7 +5,7 @@
         ISTEXT(C1),
         C1,
         LET(
-            matrix, C1:ZZ35,
+            matrix, C1:ZZ100,
 
             rewrite_col, LAMBDA(matrix, row, col, new_value,
                 MAKEARRAY(
@@ -44,6 +44,22 @@
                     new_value, deref(a) + deref(b),
                     rewrite(pcm, out, new_value)
                 ),
+            IF(operation = "sub",
+                LET(
+                    out, arg(1),
+                    a, arg(2),
+                    b, arg(3),
+                    new_value, deref(a) - deref(b),
+                    rewrite(pcm, out, new_value)
+                ),
+            IF(operation = "mul",
+                LET(
+                    out, arg(1),
+                    a, arg(2),
+                    b, arg(3),
+                    new_value, deref(a) * deref(b),
+                    rewrite(pcm, out, new_value)
+                ),
             IF(operation = "load",
                 LET(
                     out, arg(1),
@@ -71,8 +87,9 @@
                     rewrite(matrix, -1, deref(dest))
                 ),
             IF(operation = "halt", matrix,
-            "ERROR: unknown instruction [" & operation & "]"
-            ))))))),
+            "ERROR at " & ADDRESS(pc + 2, 1) &
+            ": unknown instruction [" & operation & "]"
+            ))))))))),
 
             new_pc, INDEX(result, 1, 1),
             new_operation, INDEX(result, new_pc + 2, 1),

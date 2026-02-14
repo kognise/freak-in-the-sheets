@@ -1,5 +1,6 @@
 [
   "tests/test_backend.py::test_parse_and_emit_minimal_flow",
+  "tests/test_pipeline.py::test_fib_pipeline_emits_default_sibling_ll_and_asm",
   "tests/test_pipeline.py::test_fib_pipeline_emits_ll_and_asm",
   "tests/test_sheet_pipeline.py::test_fib_pipeline_can_emit_sheet"
 ]
