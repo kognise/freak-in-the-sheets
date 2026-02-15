@@ -40,7 +40,9 @@ def _print_vm_hints(celly: bool) -> None:
     if celly:
         print(f"use {_display_path(src_dir / 'celly_vm.lua')}")
         return
-    print(f"use {_display_path(src_dir / 'vm.lua')} and {_display_path(src_dir / 'preview.lua')}")
+    print(
+        f"use {_display_path(src_dir / 'vm.lua')} and {_display_path(src_dir / 'preview.lua')}"
+    )
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -67,7 +69,9 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Sheet output path (default: sibling .sheet file)",
     )
-    parser.add_argument("--assembler", type=Path, default=None, help="Assembler JS path")
+    parser.add_argument(
+        "--assembler", type=Path, default=None, help="Assembler JS path"
+    )
     parser.add_argument(
         "--celly",
         default=False,
@@ -75,7 +79,9 @@ def build_parser() -> argparse.ArgumentParser:
         help="Use plain-cell assembler mode (via src/celly_assembler.js)",
     )
     parser.add_argument("--bun-bin", default="bun", help="bun executable name/path")
-    parser.add_argument("--clang-bin", default="clang", help="clang executable name/path")
+    parser.add_argument(
+        "--clang-bin", default="clang", help="clang executable name/path"
+    )
     parser.add_argument(
         "--opt-level",
         default="O0",
@@ -180,6 +186,10 @@ def main() -> None:
             bun_bin=args.bun_bin,
         )
         print(f"sheet: {_display_path(sheet_out)}")
+        # Make sure your VM extends to X cells down
+        print(
+            f"Make sure C1:ZZ100 extends to ZZ{sheet_out.read_text().count('\n') + 4} down"
+        )
 
 
 if __name__ == "__main__":

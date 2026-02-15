@@ -60,6 +60,9 @@
             rewrite, LAMBDA(matrix, row, new_value, rewrite_col(matrix, row, 0, new_value)),
             deref_col, LAMBDA(row, col, deref_internal_col(matrix, row, col)),
             deref, LAMBDA(row, deref_col(row, 0)),
+            to_u32, LAMBDA(v, IF(v < 0, v + 2^32, v)),
+            to_i32, LAMBDA(v, IF(v >= 2^31, v - 2^32, v)),
+            norm_i32, LAMBDA(v, to_i32(MOD(v, 2^32))),
 
             pc, deref(-1),
             pcm, rewrite(matrix, -1, pc + 1),
@@ -68,8 +71,6 @@
 
             op_lte,     0,
             op_add,     1,
-            op_sub,     11,
-            op_mul,     12,
             op_load,    2,
             op_load_a,  3,
             op_store,   4,
@@ -79,6 +80,14 @@
             op_jmp,     8,
             op_jmp_a,   9,
             op_halt,    10,
+            op_sub,     11,
+            op_mul,     12,
+            op_and,     13,
+            op_or,      14,
+            op_xor,     15,
+            op_shl,     16,
+            op_lshr,    17,
+            op_ashr,    18,
             
             IF(operation = op_lte,
                 LET(
@@ -93,7 +102,7 @@
                     out, arg(1),
                     a, arg(2),
                     b, arg(3),
-                    new_value, deref(a) + deref(b),
+                    new_value, norm_i32(deref(a) + deref(b)),
                     rewrite(pcm, out, new_value)
                 ),
             IF(operation = op_sub,
@@ -101,7 +110,7 @@
                     out, arg(1),
                     a, arg(2),
                     b, arg(3),
-                    new_value, deref(a) - deref(b),
+                    new_value, norm_i32(deref(a) - deref(b)),
                     rewrite(pcm, out, new_value)
                 ),
             IF(operation = op_mul,
@@ -109,7 +118,59 @@
                     out, arg(1),
                     a, arg(2),
                     b, arg(3),
-                    new_value, deref(a) * deref(b),
+                    new_value, norm_i32(deref(a) * deref(b)),
+                    rewrite(pcm, out, new_value)
+                ),
+            IF(operation = op_and,
+                LET(
+                    out, arg(1),
+                    a, arg(2),
+                    b, arg(3),
+                    new_value, to_i32(BITAND(to_u32(deref(a)), to_u32(deref(b)))),
+                    rewrite(pcm, out, new_value)
+                ),
+            IF(operation = op_or,
+                LET(
+                    out, arg(1),
+                    a, arg(2),
+                    b, arg(3),
+                    new_value, to_i32(BITOR(to_u32(deref(a)), to_u32(deref(b)))),
+                    rewrite(pcm, out, new_value)
+                ),
+            IF(operation = op_xor,
+                LET(
+                    out, arg(1),
+                    a, arg(2),
+                    b, arg(3),
+                    new_value, to_i32(BITXOR(to_u32(deref(a)), to_u32(deref(b)))),
+                    rewrite(pcm, out, new_value)
+                ),
+            IF(operation = op_shl,
+                LET(
+                    out, arg(1),
+                    a, arg(2),
+                    b, arg(3),
+                    shift, deref(b),
+                    shifted, BITAND(BITLSHIFT(to_u32(deref(a)), shift), 2^32 - 1),
+                    new_value, to_i32(shifted),
+                    rewrite(pcm, out, new_value)
+                ),
+            IF(operation = op_lshr,
+                LET(
+                    out, arg(1),
+                    a, arg(2),
+                    b, arg(3),
+                    shift, deref(b),
+                    new_value, to_i32(BITRSHIFT(to_u32(deref(a)), shift)),
+                    rewrite(pcm, out, new_value)
+                ),
+            IF(operation = op_ashr,
+                LET(
+                    out, arg(1),
+                    a, arg(2),
+                    b, arg(3),
+                    shift, deref(b),
+                    new_value, norm_i32(FLOOR(deref(a) / (2 ^ shift))),
                     rewrite(pcm, out, new_value)
                 ),
             IF(operation = op_load,
@@ -166,7 +227,7 @@
                 ),
             IF(operation = op_halt, matrix,
             "ERROR: unknown instruction [" & operation & "]"
-            )))))))))))))
+            )))))))))))))))))))
         )
     )
 ))

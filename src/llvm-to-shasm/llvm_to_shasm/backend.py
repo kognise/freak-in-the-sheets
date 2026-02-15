@@ -90,6 +90,19 @@ def _sym(token: str) -> str:
     return token.strip()
 
 
+def _parse_call_args(arg_text: str) -> tuple[str, ...]:
+    args: list[str] = []
+    for raw in arg_text.split(","):
+        token = raw.strip()
+        if not token:
+            continue
+        match = re.search(rf"({_NAME}|-?\d+)\s*$", token)
+        if match is None:
+            raise ValueError(f"Unsupported call argument: {token}")
+        args.append(_sym(match.group(1)))
+    return tuple(args)
+
+
 _PATTERNS: list[tuple[str, Callable[[re.Match[str]], Instruction]]] = [
     (
         rf"^({_NAME})\s*=\s*alloca\s+\[(\d+)\s+x\s+i(\d+)\].*$",
@@ -108,7 +121,7 @@ _PATTERNS: list[tuple[str, Callable[[re.Match[str]], Instruction]]] = [
         lambda m: Instruction("load", (_sym(m.group(1)), _sym(m.group(2)))),
     ),
     (
-        rf"^({_NAME})\s*=\s*(add|sub)\b(?:\s+\w+)*\s+i\d+\s+([^,]+),\s+(.+)$",
+        rf"^({_NAME})\s*=\s*(add|sub|mul|and|or|xor|shl|lshr|ashr)\b(?:\s+\w+)*\s+i\d+\s+([^,]+),\s+(.+)$",
         lambda m: Instruction(
             "binop", (_sym(m.group(1)), m.group(2), _sym(m.group(3)), _sym(m.group(4)))
         ),
@@ -126,6 +139,10 @@ _PATTERNS: list[tuple[str, Callable[[re.Match[str]], Instruction]]] = [
     (
         rf"^({_NAME})\s*=\s*getelementptr\b.*,\s+ptr\s+({_NAME}),\s+i\d+\s+([^,]+),\s+i\d+\s+(.+)$",
         lambda m: Instruction("gep", (_sym(m.group(1)), _sym(m.group(2)), _sym(m.group(4)))),
+    ),
+    (
+        rf"^({_NAME})\s*=\s*call\s+i\d+\s+@([A-Za-z$._0-9-]+)\((.*)\).*$",
+        lambda m: Instruction("call", (_sym(m.group(1)), m.group(2), *_parse_call_args(m.group(3)))),
     ),
     (
         rf"^({_NAME})\s*=\s*(?:sext|zext|trunc|bitcast)\b.*\s+({_NAME}|-?\d+)\s+to\s+.*$",
@@ -160,6 +177,7 @@ class _Emitter:
         self.value_slots: dict[str, str] = {}
         self.declarations: list[str] = []
         self.declared_rows: set[str] = set()
+        self.const_32: str | None = None
         self.block_labels: dict[str, str] = {
             name: self._block_label(name) for name in module.blocks
         }
@@ -204,11 +222,24 @@ class _Emitter:
             self.pointer_elem_bytes[ptr] = self._bits_to_bytes(bits_text)
             return
 
-        if inst.op in {"load", "binop", "icmp", "cast"}:
+        if inst.op in {"load", "binop", "icmp", "cast", "call"}:
             result = inst.args[0]
             row = self._slot_name(result)
             self._declare_row(row, ["0"])
             self.value_slots[result] = row
+            if inst.op == "call":
+                _, func_name, *call_args = inst.args
+                if func_name == "rotr32":
+                    if len(call_args) != 2:
+                        raise ValueError(f"Unsupported rotr32 arity: {len(call_args)}")
+                    self._declare_row(f"{row}_rot_shift", ["0"])
+                    self._declare_row(f"{row}_rot_right", ["0"])
+                    self._declare_row(f"{row}_rot_left", ["0"])
+                elif func_name == "lshr32":
+                    if len(call_args) != 2:
+                        raise ValueError(f"Unsupported lshr32 arity: {len(call_args)}")
+                else:
+                    raise ValueError(f"Unsupported call target: {func_name}")
 
         if inst.op == "gep":
             result, base, index = inst.args
@@ -260,16 +291,55 @@ class _Emitter:
 
         if inst.op == "binop":
             result, op_name, lhs, rhs = inst.args
-            opcode = {"add": "add", "sub": "sub"}.get(op_name)
+            opcode = {
+                "add": "add",
+                "sub": "sub",
+                "mul": "mul",
+                "and": "and",
+                "or": "or",
+                "xor": "xor",
+                "shl": "shl",
+                "lshr": "lshr",
+                "ashr": "ashr",
+            }.get(op_name)
             if opcode is None:
                 raise ValueError(f"Unsupported arithmetic op: {op_name}")
             return [f"    {opcode} {self.value_slots[result]} {self._value(lhs)} {self._value(rhs)}"]
 
         if inst.op == "icmp":
             result, pred, lhs, rhs = inst.args
-            if pred != "sle":
-                raise ValueError(f"Unsupported comparison predicate: {pred}")
-            return [f"    lte {self.value_slots[result]} {self._value(lhs)} {self._value(rhs)}"]
+            if pred == "sle":
+                return [f"    lte {self.value_slots[result]} {self._value(lhs)} {self._value(rhs)}"]
+            if pred == "slt":
+                rhs_minus_one = f"{self.value_slots[result]}_cmp_rhs_minus_1"
+                self._declare_row(rhs_minus_one, ["0"])
+                return [
+                    f"    sub {rhs_minus_one} {self._value(rhs)} {self._const(1)}",
+                    f"    lte {self.value_slots[result]} {self._value(lhs)} {rhs_minus_one}",
+                ]
+            raise ValueError(f"Unsupported comparison predicate: {pred}")
+
+        if inst.op == "call":
+            result, func_name, *call_args = inst.args
+            if func_name == "lshr32":
+                if len(call_args) != 2:
+                    raise ValueError(f"Unsupported lshr32 arity: {len(call_args)}")
+                return [f"    lshr {self.value_slots[result]} {self._value(call_args[0])} {self._value(call_args[1])}"]
+            if func_name == "rotr32":
+                if len(call_args) != 2:
+                    raise ValueError(f"Unsupported rotr32 arity: {len(call_args)}")
+                if self.const_32 is None:
+                    self.const_32 = self._const(32)
+                shift_name = f"{self.value_slots[result]}_rot_shift"
+                right_name = f"{self.value_slots[result]}_rot_right"
+                left_name = f"{self.value_slots[result]}_rot_left"
+                return [
+                    f"    sub {shift_name} {self.const_32} {self._value(call_args[1])}",
+                    f"    lshr {right_name} {self._value(call_args[0])} {self._value(call_args[1])}",
+                    f"    shl {left_name} {self._value(call_args[0])} {shift_name}",
+                    f"    or {self.value_slots[result]} {right_name} {left_name}",
+                ]
+            raise ValueError(f"Unsupported call target: {func_name}")
 
         if inst.op == "cast":
             result, source = inst.args

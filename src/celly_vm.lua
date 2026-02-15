@@ -22,6 +22,9 @@
             rewrite, LAMBDA(matrix, row, new_value, rewrite_col(matrix, row, 0, new_value)),
             deref_col, LAMBDA(row, col, INDEX(matrix, row + 2, col + 1)),
             deref, LAMBDA(row, deref_col(row, 0)),
+            to_u32, LAMBDA(v, IF(v < 0, v + 2^32, v)),
+            to_i32, LAMBDA(v, IF(v >= 2^31, v - 2^32, v)),
+            norm_i32, LAMBDA(v, to_i32(MOD(v, 2^32))),
 
             pc, deref(-1),
             pcm, rewrite(matrix, -1, pc + 1),
@@ -41,7 +44,7 @@
                     out, arg(1),
                     a, arg(2),
                     b, arg(3),
-                    new_value, deref(a) + deref(b),
+                    new_value, norm_i32(deref(a) + deref(b)),
                     rewrite(pcm, out, new_value)
                 ),
             IF(operation = "sub",
@@ -49,7 +52,7 @@
                     out, arg(1),
                     a, arg(2),
                     b, arg(3),
-                    new_value, deref(a) - deref(b),
+                    new_value, norm_i32(deref(a) - deref(b)),
                     rewrite(pcm, out, new_value)
                 ),
             IF(operation = "mul",
@@ -57,7 +60,59 @@
                     out, arg(1),
                     a, arg(2),
                     b, arg(3),
-                    new_value, deref(a) * deref(b),
+                    new_value, norm_i32(deref(a) * deref(b)),
+                    rewrite(pcm, out, new_value)
+                ),
+            IF(operation = "and",
+                LET(
+                    out, arg(1),
+                    a, arg(2),
+                    b, arg(3),
+                    new_value, to_i32(BITAND(to_u32(deref(a)), to_u32(deref(b)))),
+                    rewrite(pcm, out, new_value)
+                ),
+            IF(operation = "or",
+                LET(
+                    out, arg(1),
+                    a, arg(2),
+                    b, arg(3),
+                    new_value, to_i32(BITOR(to_u32(deref(a)), to_u32(deref(b)))),
+                    rewrite(pcm, out, new_value)
+                ),
+            IF(operation = "xor",
+                LET(
+                    out, arg(1),
+                    a, arg(2),
+                    b, arg(3),
+                    new_value, to_i32(BITXOR(to_u32(deref(a)), to_u32(deref(b)))),
+                    rewrite(pcm, out, new_value)
+                ),
+            IF(operation = "shl",
+                LET(
+                    out, arg(1),
+                    a, arg(2),
+                    b, arg(3),
+                    shift, deref(b),
+                    shifted, BITAND(BITLSHIFT(to_u32(deref(a)), shift), 2^32 - 1),
+                    new_value, to_i32(shifted),
+                    rewrite(pcm, out, new_value)
+                ),
+            IF(operation = "lshr",
+                LET(
+                    out, arg(1),
+                    a, arg(2),
+                    b, arg(3),
+                    shift, deref(b),
+                    new_value, to_i32(BITRSHIFT(to_u32(deref(a)), shift)),
+                    rewrite(pcm, out, new_value)
+                ),
+            IF(operation = "ashr",
+                LET(
+                    out, arg(1),
+                    a, arg(2),
+                    b, arg(3),
+                    shift, deref(b),
+                    new_value, norm_i32(FLOOR(deref(a) / (2 ^ shift))),
                     rewrite(pcm, out, new_value)
                 ),
             IF(operation = "load",
@@ -115,7 +170,7 @@
             IF(operation = "halt", matrix,
             "ERROR at " & ADDRESS(pc + 2, 1) &
             ": unknown instruction [" & operation & "]"
-            )))))))))),
+            )))))))))))))),
 
             new_pc, INDEX(result, 1, 1),
             new_operation, INDEX(result, new_pc + 2, 1),

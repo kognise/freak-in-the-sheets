@@ -18,6 +18,14 @@ const ops = {
   jmp: 8,
   jmp_a: 9,
   halt: 10,
+  sub: 11,
+  mul: 12,
+  and: 13,
+  or: 14,
+  xor: 15,
+  shl: 16,
+  lshr: 17,
+  ashr: 18,
 };
 
 const out = [[0]];
