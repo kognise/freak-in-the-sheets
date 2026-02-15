@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "asm": "bun src/assembler.js",
+    "asm:auto": "bun assembler-auto/assembler.js",
     "fib:c2sheet": "poetry -C src/llvm-to-shasm run python -m llvm_to_shasm.cli src/llvm-to-shasm/tests/fixtures/fib.c --sheet-out out.sheet --bun-bin ${BUN_BIN:-bun}"
   },
   "devDependencies": {

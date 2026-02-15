@@ -1,6 +1,6 @@
 =LET(
     x, NOW(),
-    cell, E8,
+    cell, C1,
     
     a_data, MID(cell, 2, 1),
     b_data, MID(cell, 3, 1),

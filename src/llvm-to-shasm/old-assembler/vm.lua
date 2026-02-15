@@ -1,11 +1,11 @@
 =ARRAYFORMULA(IF(
-    $B$3 = FALSE,
-    B8:C101,
+    A1 = FALSE,
+    Init!B:Z,
     IF(
-        REGEXMATCH(TO_TEXT(E8), "^ERROR: "),
-        E8,
+        REGEXMATCH(TO_TEXT(D1), "^ERROR: "),
+        D1,
         LET(
-            matrix, E8:G101,
+            matrix, C1:E100,
 
             rewrite_col, LAMBDA(matrix, row, col, new_value, LET(
                 real_col, FLOOR(col / 16666),
