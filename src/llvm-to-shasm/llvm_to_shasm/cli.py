@@ -3,8 +3,32 @@ from __future__ import annotations
 import argparse
 import os
 from pathlib import Path
+import sys
 
 from .compiler import assemble_shasm_to_sheet, default_assembler_path, run_pipeline
+
+
+_OPCODE_NAMES = {
+    0: "lte",
+    1: "add",
+    2: "load",
+    3: "load_a",
+    4: "store",
+    5: "store_a",
+    6: "jmp0",
+    7: "jmp0_a",
+    8: "jmp",
+    9: "jmp_a",
+    10: "halt",
+    11: "sub",
+    12: "mul",
+    13: "and",
+    14: "or",
+    15: "xor",
+    16: "shl",
+    17: "lshr",
+    18: "ashr",
+}
 
 
 def _display_path(path: Path) -> str:
@@ -72,7 +96,55 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _decode_sheet_cell(cell: str) -> list[int]:
+    text = cell.strip()
+    if text.startswith("[") and text.endswith("]"):
+        text = text[1:-1]
+    if len(text) % 3 != 0:
+        raise ValueError("Encoded cell payload length must be divisible by 3")
+
+    values: list[int] = []
+    for i in range(0, len(text), 3):
+        a = ord(text[i]) - 32
+        b = ord(text[i + 1]) - 32
+        c = ord(text[i + 2]) - 32
+        if a < 0 or a > 0x7FFF or b < 0 or b > 0x7FFF or c < 0 or c > 0x3:
+            raise ValueError("Encoded cell contains out-of-range characters")
+
+        unsigned = (a << 17) | (b << 2) | c
+        if unsigned >= (1 << 31):
+            values.append(unsigned - (1 << 32))
+        else:
+            values.append(unsigned)
+    return values
+
+
+def _run_disassemble(argv: list[str]) -> None:
+    parser = argparse.ArgumentParser(
+        prog="llvm-to-shasm disassemble",
+        description="Decode one encoded sheet cell into instruction values.",
+    )
+    parser.add_argument("cell", help="Encoded cell string like: [ !  \"! 5! 4#]")
+    args = parser.parse_args(argv)
+
+    values = _decode_sheet_cell(args.cell)
+    if not values:
+        print("decoded: []")
+        return
+
+    opcode = values[0]
+    op_name = _OPCODE_NAMES.get(opcode, f"unknown({opcode})")
+    payload = " ".join(str(v) for v in values[1:])
+
+    print(f"decoded: {values}")
+    print(f"instruction: {op_name}{(' ' + payload) if payload else ''}")
+
+
 def main() -> None:
+    if len(sys.argv) > 1 and sys.argv[1] == "disassemble":
+        _run_disassemble(sys.argv[2:])
+        return
+
     parser = build_parser()
     args = parser.parse_args()
 
