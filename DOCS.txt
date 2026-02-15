@@ -15,6 +15,9 @@ lte &out &a &b
 add &out &a &b
     Stores the result of adding *a + *b at out[0].
 
+set &dest data
+    Stores data at dest[0].
+
 load(_a) &out %row &col
     Read the value at (*row)[*col] and store it at out[0].
     Note that this reads the values at &row and &col and uses those values as the addresses.
