@@ -8,6 +8,7 @@ const code = await Bun.file(asmInput).text()
 
 const ops = {
     lte: 0,
+    lt: 14,
     add: 1,
     load: 2,
     load_a: 3,
