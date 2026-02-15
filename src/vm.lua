@@ -5,7 +5,7 @@
         REGEXMATCH(TO_TEXT(D1), "^ERROR: "),
         D1,
         LET(
-            matrix, C1:E35,
+            matrix, C1:E100,
 
             rewrite_col, LAMBDA(matrix, row, col, new_value, LET(
                 real_col, FLOOR(col / 16666),
@@ -70,6 +70,7 @@
             op_add,     1,
             op_sub,     11,
             op_mul,     12,
+            op_set,     13,
             op_load,    2,
             op_load_a,  3,
             op_store,   4,
@@ -164,9 +165,15 @@
                     dest, arg(1),
                     rewrite(matrix, -1, deref(dest))
                 ),
+            IF(operation = op_set,
+                LET(
+                    dest, arg(1),
+                    data, arg(2),
+                    rewrite(matrix, dest, data)
+                ),
             IF(operation = op_halt, matrix,
             "ERROR: unknown instruction [" & operation & "]"
-            )))))))))))))
+            ))))))))))))))
         )
     )
 ))

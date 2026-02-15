@@ -18,6 +18,9 @@ const ops = {
   jmp: 8,
   jmp_a: 9,
   halt: 10,
+  sub: 11,
+  mul: 12,
+  set: 13,
 };
 
 const out = [[0]];
