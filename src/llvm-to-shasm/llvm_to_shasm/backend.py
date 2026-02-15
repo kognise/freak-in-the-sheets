@@ -279,7 +279,7 @@ class _Emitter:
             result, pred, lhs, rhs = inst.args
             if pred != "sle":
                 raise ValueError(f"Unsupported comparison predicate: {pred}")
-            return [f"    <= {self.value_slots[result]} {self._value(lhs)} {self._value(rhs)}"]
+            return [f"    lte {self.value_slots[result]} {self._value(lhs)} {self._value(rhs)}"]
 
         if inst.op == "cast":
             result, source = inst.args

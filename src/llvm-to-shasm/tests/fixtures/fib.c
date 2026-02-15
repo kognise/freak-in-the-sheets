@@ -7,7 +7,7 @@ int main(void) {
     terms[1] = 1;
 
     for (int32_t i = 2; i <= n; i++) {
-        terms[i] = terms[i - 1] + terms[i - 2];
+        terms[i] = terms[i + -1] + terms[i + -2];
     }
 
     int32_t out = terms[n];

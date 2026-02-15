@@ -19,6 +19,12 @@ To also run the assembler and emit a sheet file:
 
 `poetry run python -m llvm_to_shasm.cli tests/fixtures/fib.c --sheet-out tests/generated/out.sheet --bun-bin ${BUN_BIN:-bun}`
 
+To emit the plain-cell variant (celly mode), use:
+
+`poetry run python -m llvm_to_shasm.cli tests/fixtures/fib.c --sheet-out tests/generated/out.sheet --celly --bun-bin ${BUN_BIN:-bun}`
+
+The assembler and VM go hand in hand: the assembler produces sheet output that the VM executes.
+
 From repo root, full chain to `out.sheet`:
 
 `bun run fib:c2sheet`

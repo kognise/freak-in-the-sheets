@@ -6,6 +6,11 @@ from pathlib import Path
 from .backend import emit_shasm, parse_llvm_ir
 
 
+def default_assembler_path(celly: bool = False) -> Path:
+    name = "celly_assembler.js" if celly else "assembler.js"
+    return Path(__file__).resolve().parents[3] / "src" / name
+
+
 def _normalize_opt_level(opt_level: str) -> str:
     level = opt_level.strip().upper()
     if level.startswith("-"):

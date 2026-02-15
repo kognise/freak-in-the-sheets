@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from .compiler import assemble_shasm_to_sheet, run_pipeline
+from .compiler import assemble_shasm_to_sheet, default_assembler_path, run_pipeline
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -26,6 +26,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--sheet-out", type=Path, default=None, help="Optional sheet output path")
     parser.add_argument("--assembler", type=Path, default=None, help="Assembler JS path")
+    parser.add_argument(
+        "--celly",
+        default=False,
+        action=argparse.BooleanOptionalAction,
+        help="Use plain-cell assembler mode (via src/celly_assembler.js)",
+    )
     parser.add_argument("--bun-bin", default="bun", help="bun executable name/path")
     parser.add_argument("--clang-bin", default="clang", help="clang executable name/path")
     parser.add_argument(
@@ -71,7 +77,7 @@ def main() -> None:
             raise ValueError("Cannot emit sheet without asm output. Use --emit-asm.")
         assembler = args.assembler
         if assembler is None:
-            assembler = Path(__file__).resolve().parents[3] / "src" / "assembler.js"
+            assembler = default_assembler_path(celly=args.celly)
         assemble_shasm_to_sheet(
             asm_path=asm_path,
             sheet_path=args.sheet_out,
