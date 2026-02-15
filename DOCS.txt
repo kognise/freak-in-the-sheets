@@ -1,29 +1,32 @@
 Run `bun asm` to assemble src/assembler.js into out.sheet.
 
-Parameters starting with & means they are memory addresses rather than the concret value.
+Parameters starting with & means they are memory addresses rather than the concrete value.
+Parameters starting with % means they should be treated as the address itself in the normal
+(constant variant), and as an &address in the "_a" (address) variant.
+
 The prefix * implies reading the value at the memory address (dereferencing).
 Memory addresses are in the form of row[col] since memory is 2D.
 
 Unless otherwise specified, the program counter (PC) increments after every instruction.
 
-<= &out &a &b
+lte &out &a &b
     If *a <= *b, stores 1 at out[0], otherwise stores 0.
 
 add &out &a &b
     Stores the result of adding *a + *b at out[0].
 
-load &out &row &col
+load(_a) &out %row &col
     Read the value at (*row)[*col] and store it at out[0].
     Note that this reads the values at &row and &col and uses those values as the addresses.
     In the future it might be better for &row to be a concrete address instead of a reference.
 
-store &row &col &in
+store(_a) %row &col &in
     Store *in at (*row)[*col]. See load for further notes.
 
-jmp0 &data &dest
+jmp0(_a) &data %dest
     If *data == 0, sets the PC to *dest, otherwise increments it as usual.
 
-jmp &dest
+jmp(_a) %dest
     Sets the PC to *dest.
 
 halt
