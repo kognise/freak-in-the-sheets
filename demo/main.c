@@ -1,4 +1,4 @@
-int n = 35;
+int n = 10;
 
 int _start() {
     int out[50];
