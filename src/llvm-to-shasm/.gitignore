@@ -1,7 +1,0 @@
-__pycache__/
-*.py[cod]
-.pytest_cache/
-
-tests/generated/
-tests/fixtures/*.ll
-tests/fixtures/*.asm

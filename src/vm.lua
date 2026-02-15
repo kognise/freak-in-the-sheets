@@ -1,11 +1,11 @@
 =ARRAYFORMULA(IF(
-    $B$3 = FALSE,
-    B8:C101,
+    $B$1 = 0,
+    B5:C101,
     IF(
         REGEXMATCH(TO_TEXT(E8), "^ERROR: "),
         E8,
         LET(
-            matrix, E8:G101,
+            matrix, E5:G101,
 
             rewrite_col, LAMBDA(matrix, row, col, new_value, LET(
                 real_col, FLOOR(col / 16666),
@@ -67,6 +67,7 @@
             operation, arg(0),
 
             op_lte,     0,
+            op_lt,      14,
             op_add,     1,
             op_sub,     11,
             op_mul,     12,
@@ -87,6 +88,14 @@
                     a, arg(2),
                     b, arg(3),
                     new_value, IF(deref(a) <= deref(b), 1, 0),
+                    rewrite(pcm, out, new_value)
+                ),
+            IF(operation = op_lt,
+                LET(
+                    out, arg(1),
+                    a, arg(2),
+                    b, arg(3),
+                    new_value, IF(deref(a) < deref(b), 1, 0),
                     rewrite(pcm, out, new_value)
                 ),
             IF(operation = op_add,
@@ -173,7 +182,7 @@
                 ),
             IF(operation = op_halt, matrix,
             "ERROR: unknown instruction [" & operation & "]"
-            ))))))))))))))
+            )))))))))))))))
         )
     )
 ))
