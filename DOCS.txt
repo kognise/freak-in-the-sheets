@@ -15,6 +15,12 @@ lte &out &a &b
 add &out &a &b
     Stores the result of adding *a + *b at out[0].
 
+mul &out &a &b
+    Stores the result of multiplying *a * *b at out[0].
+
+sub &out &a &b
+    Stores the result of *a - *b at out[0].
+
 set &dest data
     Stores data at dest[0].
 
