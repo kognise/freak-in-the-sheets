@@ -68,6 +68,8 @@
 
             op_lte,     0,
             op_add,     1,
+            op_sub,     11,
+            op_mul,     12,
             op_load,    2,
             op_load_a,  3,
             op_store,   4,
@@ -92,6 +94,22 @@
                     a, arg(2),
                     b, arg(3),
                     new_value, deref(a) + deref(b),
+                    rewrite(pcm, out, new_value)
+                ),
+            IF(operation = op_sub,
+                LET(
+                    out, arg(1),
+                    a, arg(2),
+                    b, arg(3),
+                    new_value, deref(a) - deref(b),
+                    rewrite(pcm, out, new_value)
+                ),
+            IF(operation = op_mul,
+                LET(
+                    out, arg(1),
+                    a, arg(2),
+                    b, arg(3),
+                    new_value, deref(a) * deref(b),
                     rewrite(pcm, out, new_value)
                 ),
             IF(operation = op_load,
@@ -148,7 +166,7 @@
                 ),
             IF(operation = op_halt, matrix,
             "ERROR: unknown instruction [" & operation & "]"
-            )))))))))))
+            )))))))))))))
         )
     )
 ))

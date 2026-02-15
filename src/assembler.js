@@ -3,8 +3,11 @@ const sheetOutput = process.argv[3] ?? "./out.sheet";
 const code = await Bun.file(asmInput).text();
 
 const ops = {
+  "<=": 0,
   lte: 0,
   add: 1,
+  sub: 11,
+  mul: 12,
   load: 2,
   load_a: 3,
   store: 4,
