@@ -169,7 +169,7 @@
                 LET(
                     dest, arg(1),
                     data, arg(2),
-                    rewrite(matrix, dest, data)
+                    rewrite(pcm, dest, data)
                 ),
             IF(operation = op_halt, matrix,
             "ERROR: unknown instruction [" & operation & "]"
