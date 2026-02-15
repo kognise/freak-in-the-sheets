@@ -1,6 +1,6 @@
 if (process.argv.length !== 4) {
     console.error(
-        'Usage: bun assembler-auto/assembler.js <asm-input> <sheet-output>',
+        'Usage: bun assembler.js <asm-input> <sheet-output>',
     )
     process.exit(1)
 }
