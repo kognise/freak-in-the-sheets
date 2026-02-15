@@ -1,5 +1,9 @@
-const asmInput = process.argv[2] ?? "./src/fib.asm";
-const sheetOutput = process.argv[3] ?? "./out.sheet";
+if (process.argv.length !== 4) {
+  console.error("Usage: bun assembler.js <asm-input> <sheet-output>");
+  process.exit(1);
+}
+const asmInput = process.argv[2];
+const sheetOutput = process.argv[3];
 const code = await Bun.file(asmInput).text();
 
 const ops = {

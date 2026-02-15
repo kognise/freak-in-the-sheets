@@ -5,7 +5,7 @@
         ISTEXT(C1),
         C1,
         LET(
-            matrix, C1:Z100,
+            matrix, C1:E200,
 
             rewrite_col, LAMBDA(matrix, row, col, new_value,
                 MAKEARRAY(

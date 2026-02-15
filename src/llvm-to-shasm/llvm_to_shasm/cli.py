@@ -1,9 +1,22 @@
 from __future__ import annotations
 
 import argparse
+import os
 from pathlib import Path
 
 from .compiler import assemble_shasm_to_sheet, default_assembler_path, run_pipeline
+
+
+def _display_path(path: Path) -> str:
+    return os.path.relpath(path, Path.cwd())
+
+
+def _print_vm_hints(celly: bool) -> None:
+    src_dir = Path(__file__).resolve().parents[3] / "src"
+    if celly:
+        print(f"use {_display_path(src_dir / 'celly_vm.lua')}")
+        return
+    print(f"use {_display_path(src_dir / 'vm.lua')} and {_display_path(src_dir / 'preview.lua')}")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -24,7 +37,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="shasm output path (default: sibling .asm file)",
     )
-    parser.add_argument("--sheet-out", type=Path, default=None, help="Optional sheet output path")
+    parser.add_argument(
+        "--sheet-out",
+        type=Path,
+        default=None,
+        help="Sheet output path (default: sibling .sheet file)",
+    )
     parser.add_argument("--assembler", type=Path, default=None, help="Assembler JS path")
     parser.add_argument(
         "--celly",
@@ -69,10 +87,15 @@ def main() -> None:
     )
 
     if ll_path is not None:
-        print(f"LLVM IR: {ll_path}")
+        print(f"LLVM IR: {_display_path(ll_path)}")
     if asm_path is not None:
-        print(f"shasm: {asm_path}")
-    if args.sheet_out is not None:
+        print(f"shasm: {_display_path(asm_path)}")
+        _print_vm_hints(args.celly)
+    sheet_out = args.sheet_out
+    if sheet_out is None and asm_path is not None:
+        sheet_out = asm_path.with_suffix(".sheet")
+
+    if sheet_out is not None:
         if asm_path is None:
             raise ValueError("Cannot emit sheet without asm output. Use --emit-asm.")
         assembler = args.assembler
@@ -80,11 +103,11 @@ def main() -> None:
             assembler = default_assembler_path(celly=args.celly)
         assemble_shasm_to_sheet(
             asm_path=asm_path,
-            sheet_path=args.sheet_out,
+            sheet_path=sheet_out,
             assembler_path=assembler,
             bun_bin=args.bun_bin,
         )
-        print(f"sheet: {args.sheet_out}")
+        print(f"sheet: {_display_path(sheet_out)}")
 
 
 if __name__ == "__main__":

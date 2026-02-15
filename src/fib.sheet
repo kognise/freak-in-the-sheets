@@ -1,0 +1,24 @@
+10
+50
+0
+0	1
+2
+2
+0
+0
+-1
+-2
+1
+lte	5	4	0
+jmp0	5	21
+add	5	4	7
+add	6	4	8
+load	5	2	5
+load	6	2	6
+add	5	5	6
+store	2	3	5
+add	3	3	9
+add	4	4	9
+jmp	10
+load	1	2	0
+halt
