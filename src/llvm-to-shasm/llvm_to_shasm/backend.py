@@ -160,8 +160,6 @@ class _Emitter:
         self.value_slots: dict[str, str] = {}
         self.declarations: list[str] = []
         self.declared_rows: set[str] = set()
-        self.row_addr_symbols: dict[str, str] = {}
-        self.block_addr_symbols: dict[str, str] = {}
         self.block_labels: dict[str, str] = {
             name: self._block_label(name) for name in module.blocks
         }
@@ -170,7 +168,7 @@ class _Emitter:
         self._scan_declarations()
         body: list[str] = []
         body.append("_start:")
-        body.append(f"    jmp {self._block_addr(self.module.entry)}")
+        body.append(f"    jmp {self.block_labels[self.module.entry]}")
 
         for block_name, instructions in self.module.blocks.items():
             body.append(f"{self.block_labels[block_name]}:")
@@ -184,13 +182,9 @@ class _Emitter:
         self._declare_const(1)
         self._declare_row("out", ["0"])
 
-        for block_name, instructions in self.module.blocks.items():
-            self._block_addr(block_name)
+        for instructions in self.module.blocks.values():
             for inst in instructions:
                 self._scan_instruction(inst)
-
-        for slot in self.pointer_slots.values():
-            self._row_addr(slot.row)
 
     def _scan_instruction(self, inst: Instruction) -> None:
         if inst.op == "alloca_scalar":
@@ -242,13 +236,9 @@ class _Emitter:
         if inst.op == "br_cond":
             cond, true_block, false_block = inst.args
             self._value(cond)
-            self._block_addr(true_block)
-            self._block_addr(false_block)
             return
 
         if inst.op == "br":
-            target = inst.args[0]
-            self._block_addr(target)
             return
 
         if inst.op == "ret" and inst.args:
@@ -261,12 +251,12 @@ class _Emitter:
         if inst.op == "load":
             result, pointer = inst.args
             addr = self._pointer(pointer)
-            return [f"    load {self.value_slots[result]} {self._row_addr(addr.row)} {addr.col}"]
+            return [f"    load {self.value_slots[result]} {addr.row} {addr.col}"]
 
         if inst.op == "store":
             value, pointer = inst.args
             addr = self._pointer(pointer)
-            return [f"    store {self._row_addr(addr.row)} {addr.col} {self._value(value)}"]
+            return [f"    store {addr.row} {addr.col} {self._value(value)}"]
 
         if inst.op == "binop":
             result, op_name, lhs, rhs = inst.args
@@ -288,12 +278,12 @@ class _Emitter:
         if inst.op == "br_cond":
             cond, true_block, false_block = inst.args
             return [
-                f"    jmp0 {self._value(cond)} {self._block_addr(false_block)}",
-                f"    jmp {self._block_addr(true_block)}",
+                f"    jmp0 {self._value(cond)} {self.block_labels[false_block]}",
+                f"    jmp {self.block_labels[true_block]}",
             ]
 
         if inst.op == "br":
-            return [f"    jmp {self._block_addr(inst.args[0])}"]
+            return [f"    jmp {self.block_labels[inst.args[0]]}"]
 
         if inst.op == "ret":
             lines = []
@@ -338,24 +328,6 @@ class _Emitter:
         if token in self.pointer_slots:
             return self.pointer_slots[token]
         raise ValueError(f"Unknown pointer token: {token}")
-
-    def _row_addr(self, row: str) -> str:
-        existing = self.row_addr_symbols.get(row)
-        if existing:
-            return existing
-        symbol = f"{row}_addr"
-        self.row_addr_symbols[row] = symbol
-        self._declare_row(symbol, [row])
-        return symbol
-
-    def _block_addr(self, block_name: str) -> str:
-        existing = self.block_addr_symbols.get(block_name)
-        if existing:
-            return existing
-        symbol = f"{self.block_labels[block_name]}_addr"
-        self.block_addr_symbols[block_name] = symbol
-        self._declare_row(symbol, [self.block_labels[block_name]])
-        return symbol
 
     def _block_label(self, block_name: str) -> str:
         safe = re.sub(r"[^A-Za-z0-9_]", "_", block_name)

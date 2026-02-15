@@ -65,10 +65,25 @@
                     out, arg(1),
                     row, arg(2),
                     col, arg(3),
+                    new_value, deref_col(row, deref(col)),
+                    rewrite(pcm, out, new_value)
+                ),
+            IF(operation = "load_a",
+                LET(
+                    out, arg(1),
+                    row, arg(2),
+                    col, arg(3),
                     new_value, deref_col(deref(row), deref(col)),
                     rewrite(pcm, out, new_value)
                 ),
             IF(operation = "store",
+                LET(
+                    row, arg(1),
+                    col, arg(2),
+                    in, arg(3),
+                    rewrite_col(pcm, row, deref(col), deref(in))
+                ),
+            IF(operation = "store_a",
                 LET(
                     row, arg(1),
                     col, arg(2),
@@ -79,9 +94,20 @@
                 LET(
                     data, arg(1),
                     dest, arg(2),
+                    IF(deref(data) = 0, rewrite(matrix, -1, dest), pcm)
+                ),
+            IF(operation = "jmp0_a",
+                LET(
+                    data, arg(1),
+                    dest, arg(2),
                     IF(deref(data) = 0, rewrite(matrix, -1, deref(dest)), pcm)
                 ),
             IF(operation = "jmp",
+                LET(
+                    dest, arg(1),
+                    rewrite(matrix, -1, dest)
+                ),
+            IF(operation = "jmp_a",
                 LET(
                     dest, arg(1),
                     rewrite(matrix, -1, deref(dest))
@@ -89,7 +115,7 @@
             IF(operation = "halt", matrix,
             "ERROR at " & ADDRESS(pc + 2, 1) &
             ": unknown instruction [" & operation & "]"
-            ))))))))),
+            )))))))))),
 
             new_pc, INDEX(result, 1, 1),
             new_operation, INDEX(result, new_pc + 2, 1),

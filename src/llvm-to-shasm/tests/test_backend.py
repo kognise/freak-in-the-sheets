@@ -29,6 +29,9 @@ else:
     assert "store" in asm
     assert "jmp0" in asm
     assert "halt" in asm
+    assert "_addr =" not in asm
+    assert "v_a_addr" not in asm
+    assert "    jmp entry" in asm
 
 
 def test_parse_error_includes_source_location() -> None:
